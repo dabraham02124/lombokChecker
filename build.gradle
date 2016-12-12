@@ -1,0 +1,49 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+repositories {
+    jcenter()
+}
+
+
+   ext.checkerFrameworkVersion = '2.1.4'
+   ext.jdkVersion = 'jdk8'
+   ext.targetJavaVersion = JavaVersion.VERSION_1_8
+
+
+configurations {
+   checkerFrameworkJavac {
+      description = 'a customization of the OpenJDK javac compiler with additional support for type annotations'
+   }
+   checkerFrameworkAnnotatedJDK {
+         description = 'a copy of JDK classes with Checker Framework type qualifers inserted'
+   }
+   checkerFramework {
+         description = 'The Checker Framework: custom pluggable types for Java'
+   }
+}
+
+dependencies {
+   compile group: 'org.projectlombok', name: 'lombok', version: '1.16.8'
+// add the package of my 'other' preprocessor to the checker classpath
+   checkerFramework group: 'org.projectlombok', name: 'lombok', version: '1.16.8'
+
+   compile group: 'org.checkerframework', name: 'checker', version:  checkerFrameworkVersion
+
+   checkerFrameworkAnnotatedJDK "org.checkerframework:${jdkVersion}:${checkerFrameworkVersion}"
+   checkerFramework "org.checkerframework:checker:${checkerFrameworkVersion}"
+
+   compile "org.checkerframework:checker-qual:${checkerFrameworkVersion}"
+
+}
+
+   tasks.withType(JavaCompile).all { JavaCompile compile ->
+        compile.options.compilerArgs = [
+// add the lombok pre-processor to the list
+                '-processor', 'org.checkerframework.checker.nullness.NullnessChecker,lombok.launch.AnnotationProcessorHider$AnnotationProcessor',
+               '-processorpath', "${configurations.checkerFramework.asPath}",
+                // uncomment to turn Checker Framework errors into warnings
+                '-Awarns',
+                "-Xbootclasspath/p:${configurations.checkerFrameworkAnnotatedJDK.asPath}"
+        ]
+    }
